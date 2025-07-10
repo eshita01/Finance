@@ -1,5 +1,7 @@
 import logging
-from typing import List
+
+from datetime import datetime, timedelta
+from typing import List, Optional
 
 import pandas as pd
 import yfinance as yf
@@ -19,6 +21,7 @@ class StockDataFetcher:
         """Fetch data from yfinance."""
         try:
             logger.info("Fetching data for %s", self.tickers)
+
             data = yf.download(
                 self.tickers,
                 period=self.period,
