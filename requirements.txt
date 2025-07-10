@@ -4,3 +4,4 @@ yfinance
 ta
 google-generativeai
 python-dotenv
+requests

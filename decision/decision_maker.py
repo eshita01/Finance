@@ -15,11 +15,16 @@ class DecisionMaker:
 
     def decide(self, signals: Dict[str, str]) -> str:
         prompt = (
-            "You are a trading assistant. Based on the following technical signals,"
-            " provide a single word recommendation: Buy, Sell, or Hold.\n"
+            "You are a trading assistant. Based on the following analysis signals,"
+            " provide a single word recommendation: Buy, Sell, or Hold, followed by"
+            " a short rationale.\n"
             f"RSI signal: {signals.get('rsi')}\n"
             f"MACD signal: {signals.get('macd')}\n"
             f"Bollinger Bands signal: {signals.get('bb')}\n"
+            f"Average sentiment: {signals.get('average_sentiment')}\n"
+            f"Tone: {signals.get('tone')}\n"
+            f"Urgency: {signals.get('urgency')}\n"
+            f"Trend: {signals.get('trend')}\n"
         )
         try:
             logger.info("Sending prompt to Gemini")
