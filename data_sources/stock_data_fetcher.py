@@ -1,4 +1,5 @@
 import logging
+
 from datetime import datetime, timedelta
 from typing import List, Optional
 
@@ -20,7 +21,14 @@ class StockDataFetcher:
         """Fetch data from yfinance."""
         try:
             logger.info("Fetching data for %s", self.tickers)
-            data = yf.download(self.tickers, period=self.period, interval=self.interval, group_by='ticker', auto_adjust=True)
+
+            data = yf.download(
+                self.tickers,
+                period=self.period,
+                interval=self.interval,
+                group_by="column",
+                auto_adjust=True,
+            )
             return data
         except Exception as e:
             logger.exception("Failed to fetch data: %s", e)

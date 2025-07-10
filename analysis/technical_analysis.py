@@ -12,11 +12,26 @@ def compute_indicators(data: pd.DataFrame) -> pd.DataFrame:
     try:
         logger.info("Computing technical indicators")
         df = data.copy()
-        if ('Adj Close' in df.columns) or ('Close' in df.columns):
-            price_col = 'Adj Close' if 'Adj Close' in df.columns else 'Close'
+
+        if isinstance(df.columns, pd.MultiIndex):
+            # Flatten multiindex by keeping only the price level
+            if 'Adj Close' in df.columns.get_level_values(0) or 'Close' in df.columns.get_level_values(0):
+                df.columns = df.columns.get_level_values(0)
+            elif 'Adj Close' in df.columns.get_level_values(-1) or 'Close' in df.columns.get_level_values(-1):
+                df.columns = df.columns.get_level_values(-1)
+            else:
+                logger.error("Price columns not found in MultiIndex")
+                raise ValueError("Price column missing")
+
+        if df.empty:
+            logger.error("No data received for indicator computation")
+            raise ValueError("Empty dataframe")
+
+        if ("Adj Close" in df.columns) or ("Close" in df.columns):
+            price_col = "Adj Close" if "Adj Close" in df.columns else "Close"
         else:
-            logger.error('Price column not found in data')
-            raise ValueError('Price column missing')
+            logger.error("Price column not found in data")
+            raise ValueError("Price column missing")
 
         df['SMA_20'] = ta.trend.sma_indicator(df[price_col], window=20)
         df['RSI_14'] = ta.momentum.rsi(df[price_col], window=14)
