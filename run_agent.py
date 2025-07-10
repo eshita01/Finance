@@ -1,38 +1,46 @@
 import argparse
 import logging
-from typing import TypedDict, Dict
+from typing import TypedDict, Dict, Any, List
 
 import pandas as pd
 from langgraph.graph import StateGraph, END
 
 from data_sources.stock_data_fetcher import StockDataFetcher
+from data_sources.news_sentiment_fetcher import NewsSentimentFetcher
 from analysis.technical_analysis import compute_indicators, analyze
+from analysis.sentiment_analysis import analyze as analyze_sentiment
 from decision.decision_maker import DecisionMaker
-from config import get_api_key
+from config import get_api_key, get_alpha_vantage_key
 
 
 class AgentState(TypedDict, total=False):
     data: pd.DataFrame
+    news: List[Dict[str, Any]]
     indicators: pd.DataFrame
     signals: Dict[str, str]
+    sentiment: Dict[str, Any]
     decision: str
 
 
-def build_graph(ticker: str, api_key: str):
+def build_graph(ticker: str, gemini_key: str, alpha_key: str):
     fetcher = StockDataFetcher([ticker])
-    decider = DecisionMaker(api_key)
+    news_fetcher = NewsSentimentFetcher([ticker], alpha_key)
+    decider = DecisionMaker(gemini_key)
 
     def fetch_node(state: AgentState) -> AgentState:
         data = fetcher.fetch()
-        return {"data": data}
+        news = news_fetcher.fetch()
+        return {"data": data, "news": news}
 
     def analysis_node(state: AgentState) -> AgentState:
         df = compute_indicators(state["data"])
         signals = analyze(df)
-        return {"indicators": df, "signals": signals}
+        sentiment = analyze_sentiment(state["news"])
+        return {"indicators": df, "signals": signals, "sentiment": sentiment}
 
     def decision_node(state: AgentState) -> AgentState:
-        decision = decider.decide(state["signals"])
+        combined = {**state.get("signals", {}), **state.get("sentiment", {})}
+        decision = decider.decide(combined)
         return {"decision": decision}
 
     graph = StateGraph(AgentState)
@@ -57,8 +65,9 @@ def main():
 
     logging.basicConfig(level=logging.INFO)
 
-    api_key = get_api_key()
-    graph = build_graph(args.ticker, api_key)
+    gemini_key = get_api_key()
+    alpha_key = get_alpha_vantage_key()
+    graph = build_graph(args.ticker, gemini_key, alpha_key)
     result = graph.invoke({})
     print("Decision:", result["decision"])
 
