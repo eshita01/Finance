@@ -8,10 +8,12 @@ This project implements a simple trading agent using [LangGraph](https://github.
   - `stock_data_fetcher.py` – fetch OHLCV data with yfinance
   - `news_sentiment_fetcher.py` – fetch recent news and sentiment from Alpha Vantage
   - `insider_data_fetcher.py` – fetch insider transactions and sentiment using the `finnhub-python` client
+  - `peer_data_fetcher.py` – retrieve peer tickers and their raw data
 - `analysis/` – analysis nodes
   - `technical_analysis.py` – compute indicators and signals
   - `sentiment_analysis.py` – summarize news sentiment
   - `insider_analysis.py` – evaluate insider trading activity
+  - `peer_analysis.py` – compare peer stock performance
 - `decision/` – decision nodes
   - `decision_maker.py` – call Gemini for a decision
 - `run_agent.py` – script to run the agent
@@ -79,6 +81,34 @@ Output example:
         "top_execs_involved": ["CEO"],
         "mspr": 0.65,
         "recent_cluster": True
+    }
+}
+```
+
+**peer_data_fetcher**
+
+Input: `ticker` string.
+
+Output example:
+
+```python
+{
+    "peers": ["MSFT", "GOOGL"],
+    "price_data": {"MSFT": DataFrame, "GOOGL": DataFrame},
+    "news": {"MSFT": {...}}
+}
+```
+
+**peer_analysis**
+
+Input: dictionary from `peer_data_fetcher`.
+
+Output example:
+
+```python
+{
+    "peer_table": {
+        "MSFT": {"sentiment": 0.2, "change_1d": 1.5, "change_7d": 3.1, "rsi": 55.4}
     }
 }
 ```
