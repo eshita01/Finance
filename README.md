@@ -8,7 +8,7 @@ This project implements a simple trading agent using [LangGraph](https://github.
   - `stock_data_fetcher.py` – fetch OHLCV data with yfinance
   - `news_sentiment_fetcher.py` – fetch recent news and sentiment from Alpha Vantage
   - `insider_data_fetcher.py` – fetch insider transactions and sentiment using the `finnhub-python` client
-  - `peer_data_fetcher.py` – retrieve peer tickers and their raw data
+  - `peer_data_fetcher.py` – retrieve peer tickers, price data, and news sentiment via Alpha Vantage
 - `analysis/` – analysis nodes
   - `technical_analysis.py` – compute indicators and signals
   - `sentiment_analysis.py` – summarize news sentiment

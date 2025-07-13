@@ -37,7 +37,7 @@ def build_graph(
     fetcher = StockDataFetcher([ticker], end_date=base_date)
     news_fetcher = NewsSentimentFetcher([ticker], alpha_key, base_date=base_date)
     insider_fetcher = InsiderDataFetcher(ticker, finnhub_key, base_date=base_date)
-    peer_fetcher = PeerDataFetcher(ticker, finnhub_key, base_date=base_date)
+    peer_fetcher = PeerDataFetcher(ticker, finnhub_key, alpha_key, base_date=base_date)
     decider = DecisionMaker(gemini_key)
 
     def fetch_node(state: AgentState) -> AgentState:
@@ -46,9 +46,10 @@ def build_graph(
         insider = insider_fetcher.fetch()
 
         print("\n=== Fetch Node ===")
-        print(f"Price rows: {len(data)}")
-        print(f"News items: {len(news)}")
-        print(f"Insider transactions: {len(insider.get('insider_transactions', []))}")
+        print(
+            f"Fetched {len(data)} price rows, {len(news)} news articles and "
+            f"{len(insider.get('insider_transactions', []))} insider transactions"
+        )
         print()
 
         return {"data": data, "news": news, "insider": insider}
@@ -60,9 +61,9 @@ def build_graph(
         insider_insights = analyze_insider(state["insider"])
 
         print("\n=== Analysis Node ===")
-        print(f"Signals: {signals}")
-        print(f"Sentiment: {sentiment}")
-        print(f"Insider: {insider_insights}")
+        print("Technical signals:", signals)
+        print("News sentiment:", sentiment)
+        print("Insider analysis:", insider_insights)
         print()
 
         return {
@@ -76,7 +77,7 @@ def build_graph(
         peer_data = peer_fetcher.fetch()
 
         print("\n=== Peer Fetch Node ===")
-        print(f"Peers: {peer_data.get('peers')}")
+        print("Peers fetched:", peer_data.get("peers"))
         print()
 
         return {"peer_data": peer_data}
@@ -85,7 +86,8 @@ def build_graph(
         insights = analyze_peers(state["peer_data"])
 
         print("\n=== Peer Analysis Node ===")
-        print(f"Peer table: {insights.get('peer_table')}")
+        print("Peer comparison table:")
+        print(insights.get("peer_table"))
         print()
 
         return {"peer_insights": insights}
@@ -100,9 +102,6 @@ def build_graph(
         decision = decider.decide(combined)
 
         print("\n=== Decision Node ===")
-        print(decision)
-        print()
-
         return {"decision": decision}
 
     graph = StateGraph(AgentState)
@@ -142,7 +141,7 @@ def main():
     )
     graph = build_graph(args.ticker, gemini_key, alpha_key, finnhub_key, base_date)
     result = graph.invoke({})
-    print("Decision:", result["decision"])
+    print("\nFinal decision:", result["decision"])
 
 
 if __name__ == "__main__":
