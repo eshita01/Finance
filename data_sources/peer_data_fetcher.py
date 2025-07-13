@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timedelta, timezone
+
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -22,6 +23,7 @@ class PeerDataFetcher:
         self.ticker = ticker
         self.api_key = api_key
         self.base_date = base_date or datetime.now(timezone.utc)
+
         self.limit = limit
         self.client = finnhub.Client(api_key=api_key)
 
@@ -42,6 +44,7 @@ class PeerDataFetcher:
                 df = yf.download(
                     peer, start=start, end=end, interval="1d", auto_adjust=True
                 )
+
                 price_data[peer] = df
             except Exception as e:
                 logger.exception("Error fetching prices for %s: %s", peer, e)
