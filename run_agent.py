@@ -1,6 +1,6 @@
 import argparse
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TypedDict, Dict, Any, List
 
 import pandas as pd
@@ -31,7 +31,9 @@ class AgentState(TypedDict, total=False):
     decision: str
 
 
-def build_graph(ticker: str, gemini_key: str, alpha_key: str, finnhub_key: str, base_date: datetime):
+def build_graph(
+    ticker: str, gemini_key: str, alpha_key: str, finnhub_key: str, base_date: datetime
+):
     fetcher = StockDataFetcher([ticker], end_date=base_date)
     news_fetcher = NewsSentimentFetcher([ticker], alpha_key, base_date=base_date)
     insider_fetcher = InsiderDataFetcher(ticker, finnhub_key, base_date=base_date)
@@ -48,7 +50,6 @@ def build_graph(ticker: str, gemini_key: str, alpha_key: str, finnhub_key: str, 
         print(f"News items: {len(news)}")
         print(f"Insider transactions: {len(insider.get('insider_transactions', []))}")
         print()
-
 
         return {"data": data, "news": news, "insider": insider}
 
@@ -134,7 +135,11 @@ def main():
     gemini_key = get_api_key()
     alpha_key = get_alpha_vantage_key()
     finnhub_key = get_finnhub_key()
-    base_date = datetime.strptime(args.date, "%Y-%m-%d") if args.date else datetime.utcnow()
+    base_date = (
+        datetime.strptime(args.date, "%Y-%m-%d")
+        if args.date
+        else datetime.now(timezone.utc)
+    )
     graph = build_graph(args.ticker, gemini_key, alpha_key, finnhub_key, base_date)
     result = graph.invoke({})
     print("Decision:", result["decision"])

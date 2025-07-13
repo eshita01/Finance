@@ -24,13 +24,13 @@ def analyze(data: Dict[str, Any]) -> Dict[str, Any]:
             if isinstance(df, pd.DataFrame) and not df.empty:
                 price_col = "Adj Close" if "Adj Close" in df.columns else "Close"
                 if len(df) >= 2:
-                    price_change_1d = (
+                    price_change_1d = float(
                         (df[price_col].iloc[-1] - df[price_col].iloc[-2])
                         / df[price_col].iloc[-2]
                         * 100
                     )
                 if len(df) >= 8:
-                    price_change_7d = (
+                    price_change_7d = float(
                         (df[price_col].iloc[-1] - df[price_col].iloc[-8])
                         / df[price_col].iloc[-8]
                         * 100

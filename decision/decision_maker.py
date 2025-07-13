@@ -11,16 +11,25 @@ class DecisionMaker:
 
     def __init__(self, api_key: str):
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
+        self.model = genai.GenerativeModel("gemini-2.5-flash")
 
     def decide(self, signals: Dict[str, Any]) -> str:
         peer_table = signals.get("peer_table", {})
         peer_lines = []
         for sym, info in peer_table.items():
-            peer_lines.append(
-                f"{sym}: 1d {info.get('change_1d'):.2f}% | 7d {info.get('change_7d'):.2f}% | RSI {info.get('rsi'):.2f} | Sent {info.get('sentiment'):.2f}"
-                if info else f"{sym}: data unavailable"
+            if not info:
+                peer_lines.append(f"{sym}: data unavailable")
+                continue
+
+            def fmt(val):
+                return f"{float(val):.2f}" if val is not None else "N/A"
+
+            line = (
+                f"{sym}: 1d {fmt(info.get('change_1d'))}% | 7d {fmt(info.get('change_7d'))}% "
+                f"| RSI {fmt(info.get('rsi'))} | Sent {fmt(info.get('sentiment'))}"
             )
+            peer_lines.append(line)
+
         peer_summary = "\n".join(peer_lines)
 
         prompt = (
