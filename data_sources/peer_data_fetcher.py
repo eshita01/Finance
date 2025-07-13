@@ -17,15 +17,18 @@ class PeerDataFetcher:
     def __init__(
         self,
         ticker: str,
+
         finnhub_key: str,
         alpha_key: str,
         base_date: Optional[datetime] = None,
         limit: int = 3,
     ):
         self.ticker = ticker
+
         self.finnhub_key = finnhub_key
         self.alpha_key = alpha_key
         self.base_date = base_date or datetime.now(timezone.utc)
+
 
         self.limit = limit
         self.client = finnhub.Client(api_key=finnhub_key)
