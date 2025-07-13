@@ -37,7 +37,7 @@ def build_graph(
     fetcher = StockDataFetcher([ticker], end_date=base_date)
     news_fetcher = NewsSentimentFetcher([ticker], alpha_key, base_date=base_date)
     insider_fetcher = InsiderDataFetcher(ticker, finnhub_key, base_date=base_date)
-    peer_fetcher = PeerDataFetcher(ticker, finnhub_key, base_date=base_date)
+    peer_fetcher = PeerDataFetcher(ticker, finnhub_key, alpha_key, base_date=base_date)
     decider = DecisionMaker(gemini_key)
 
     def fetch_node(state: AgentState) -> AgentState:
