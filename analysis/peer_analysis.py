@@ -23,21 +23,17 @@ def analyze(data: Dict[str, Any]) -> Dict[str, Any]:
             rsi = None
             if isinstance(df, pd.DataFrame) and not df.empty:
                 price_col = "Adj Close" if "Adj Close" in df.columns else "Close"
+
                 if len(df) >= 2:
-                    price_change_1d = float(
+                    last = float(df[price_col].iloc[-1])
+                    prev = float(df[price_col].iloc[-2])
+                    price_change_1d = (last - prev) / prev * 100
 
-                        (df[price_col].iloc[-1] - df[price_col].iloc[-2])
-                        / df[price_col].iloc[-2]
-                        * 100
-                    )
                 if len(df) >= 8:
+                    last = float(df[price_col].iloc[-1])
+                    prev7 = float(df[price_col].iloc[-8])
+                    price_change_7d = (last - prev7) / prev7 * 100
 
-                    price_change_7d = float(
-
-                        (df[price_col].iloc[-1] - df[price_col].iloc[-8])
-                        / df[price_col].iloc[-8]
-                        * 100
-                    )
                 indicators = compute_indicators(df)
                 rsi = float(indicators["RSI_14"].iloc[-1])
 
