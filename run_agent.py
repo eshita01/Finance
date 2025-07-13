@@ -37,6 +37,14 @@ def build_graph(ticker: str, gemini_key: str, alpha_key: str, finnhub_key: str, 
         data = fetcher.fetch()
         news = news_fetcher.fetch()
         insider = insider_fetcher.fetch()
+
+        print("\n=== Fetch Node ===")
+        print(f"Price rows: {len(data)}")
+        print(f"News items: {len(news)}")
+        print(f"Insider transactions: {len(insider.get('insider_transactions', []))}")
+        print()
+
+
         return {"data": data, "news": news, "insider": insider}
 
     def analysis_node(state: AgentState) -> AgentState:
@@ -44,6 +52,13 @@ def build_graph(ticker: str, gemini_key: str, alpha_key: str, finnhub_key: str, 
         signals = analyze(df)
         sentiment = analyze_sentiment(state["news"])
         insider_insights = analyze_insider(state["insider"])
+
+        print("\n=== Analysis Node ===")
+        print(f"Signals: {signals}")
+        print(f"Sentiment: {sentiment}")
+        print(f"Insider: {insider_insights}")
+        print()
+
         return {
             "indicators": df,
             "signals": signals,
@@ -58,6 +73,11 @@ def build_graph(ticker: str, gemini_key: str, alpha_key: str, finnhub_key: str, 
             **state.get("insider_insights", {}),
         }
         decision = decider.decide(combined)
+
+        print("\n=== Decision Node ===")
+        print(decision)
+        print()
+
         return {"decision": decision}
 
     graph = StateGraph(AgentState)

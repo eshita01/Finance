@@ -40,7 +40,10 @@ python run_agent.py AAPL --date 2024-05-01
 
 The script fetches price history, recent news sentiment and insider trading data
 for the selected date. It computes technical, news and insider metrics before
-asking Gemini for a final buy/sell/hold decision with a short explanation.
+asking Gemini for a final buy/sell/hold decision with a short explanation. The
+decision node combines technical signals, news sentiment and insider analysis
+into a single prompt for Gemini.
+
 
 ## Node input and output
 
