@@ -44,6 +44,7 @@ asking Gemini for a final buy/sell/hold decision with a short explanation. The
 decision node combines technical signals, news sentiment and insider analysis
 into a single prompt for Gemini.
 
+
 ## Node input and output
 
 **insider_data_fetcher**

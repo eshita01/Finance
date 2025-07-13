@@ -44,6 +44,7 @@ def build_graph(ticker: str, gemini_key: str, alpha_key: str, finnhub_key: str, 
         print(f"Insider transactions: {len(insider.get('insider_transactions', []))}")
         print()
 
+
         return {"data": data, "news": news, "insider": insider}
 
     def analysis_node(state: AgentState) -> AgentState:
