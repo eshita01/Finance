@@ -12,19 +12,23 @@ logger = logging.getLogger(__name__)
 class StockDataFetcher:
     """Fetch historical OHLCV data for given tickers."""
 
-    def __init__(self, tickers: List[str], period: str = "1mo", interval: str = "1d"):
+    def __init__(self, tickers: List[str], lookback_days: int = 30, interval: str = "1d", end_date: Optional[datetime] = None):
         self.tickers = tickers
-        self.period = period
+        self.lookback_days = lookback_days
         self.interval = interval
+        self.end_date = end_date or datetime.utcnow()
 
     def fetch(self) -> pd.DataFrame:
         """Fetch data from yfinance."""
         try:
             logger.info("Fetching data for %s", self.tickers)
 
+            start = (self.end_date - timedelta(days=self.lookback_days)).strftime("%Y-%m-%d")
+            end = self.end_date.strftime("%Y-%m-%d")
             data = yf.download(
                 self.tickers,
-                period=self.period,
+                start=start,
+                end=end,
                 interval=self.interval,
                 group_by="column",
                 auto_adjust=True,
