@@ -6,3 +6,5 @@ google-generativeai
 python-dotenv
 requests
 finnhub-python
+sec-edgar-downloader
+pdfplumber
