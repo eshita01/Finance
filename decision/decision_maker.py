@@ -48,6 +48,8 @@ class DecisionMaker:
             f"Insider summary: {signals.get('summary')}\n"
             f"Risk summary: {signals.get('risk_summary')}\n"
             f"MD&A summary: {signals.get('mdna_summary')}\n"
+            f"Filing age (days): {signals.get('sec_filing_age_days')}\n"
+
             f"Peer data:\n{peer_summary}\n"
         )
         try:
