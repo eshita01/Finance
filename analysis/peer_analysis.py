@@ -25,13 +25,19 @@ def analyze(data: Dict[str, Any]) -> Dict[str, Any]:
                 price_col = "Adj Close" if "Adj Close" in df.columns else "Close"
 
                 if len(df) >= 2:
-                    last = float(df[price_col].iloc[-1])
-                    prev = float(df[price_col].iloc[-2])
+                    last = df[price_col].iloc[-1]
+                    prev = df[price_col].iloc[-2]
+                    # pandas may return a single element Series; use item() to
+                    # avoid FutureWarning when casting to float
+                    last = float(last.item() if hasattr(last, "item") else last)
+                    prev = float(prev.item() if hasattr(prev, "item") else prev)
                     price_change_1d = (last - prev) / prev * 100
 
                 if len(df) >= 8:
-                    last = float(df[price_col].iloc[-1])
-                    prev7 = float(df[price_col].iloc[-8])
+                    last = df[price_col].iloc[-1]
+                    prev7 = df[price_col].iloc[-8]
+                    last = float(last.item() if hasattr(last, "item") else last)
+                    prev7 = float(prev7.item() if hasattr(prev7, "item") else prev7)
                     price_change_7d = (last - prev7) / prev7 * 100
 
                 indicators = compute_indicators(df)
