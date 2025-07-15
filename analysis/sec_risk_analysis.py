@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional
 
 import google.generativeai as genai
 import pdfplumber
+from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,9 @@ class SECRiskAnalyzer:
     """Parse SEC filing PDF and summarize key risk sections using an LLM."""
 
     def __init__(self, api_key: str, model: str = "gemini-2.5-flash") -> None:
+        """Configure the Google Generative AI model and cache directory."""
         genai.configure(api_key=api_key)
+        self.model = genai.GenerativeModel(model)
         self.analysis_dir = Path("cache/sec_analysis")
         self.analysis_dir.mkdir(parents=True, exist_ok=True)
 
@@ -29,32 +32,67 @@ class SECRiskAnalyzer:
             logger.exception("LLM summarization failed: %s", exc)
             return ""
 
-    def _extract_text(self, pdf_path: Path) -> str:
+    def _extract_pdf_text(self, pdf_path: Path) -> str:
         with pdfplumber.open(pdf_path) as pdf:
             pages = [p.extract_text() or "" for p in pdf.pages]
         return "\n".join(pages)
+
+    def _extract_html_text(self, html_path: Path) -> str:
+        html = html_path.read_text(errors="ignore")
+        soup = BeautifulSoup(html, "html.parser")
+        text = soup.get_text("\n")
+        return "\n".join(line.strip() for line in text.splitlines())
+
+    def _extract_text(self, pdf_path: Path, html_path: Optional[Path] = None) -> str:
+        if html_path and html_path.exists():
+            return self._extract_html_text(html_path)
+        return self._extract_pdf_text(pdf_path)
+
+    def _clean_text(self, text: str) -> str:
+        text = text.replace("\xa0", " ")
+        text = text.replace("&nbsp;", " ")
+        text = re.sub(r"\s+", " ", text)
+        return text
 
 
     def _parse_sections(self, text: str, form: str) -> Dict[str, str]:
         """Extract risk factors and MD&A sections based on form type."""
         sections: Dict[str, str] = {"risk": "", "mdna": ""}
 
+        text = self._clean_text(text)
+
+        def find_section(src: str, start_pat: str, end_pat: str) -> str:
+            start = re.search(start_pat, src, re.IGNORECASE)
+            if not start:
+                return ""
+            remainder = src[start.end():]
+            end = re.search(end_pat, remainder, re.IGNORECASE)
+            if end:
+                return remainder[: end.start()].strip()
+            return remainder.strip()
+
         if form.upper() == "10-K":
-            risk_pat = re.compile(r"item\s*1a[^\n]*risk factors(?P<section>.*?)item\s*1b", re.IGNORECASE | re.DOTALL)
-            mdna_pat = re.compile(r"item\s*7[^\n]*management's discussion and analysis(?P<section>.*?)item\s*8", re.IGNORECASE | re.DOTALL)
+            sections["risk"] = find_section(
+                text,
+                r"item\s*1a\.?\s*risk factors",
+                r"item\s*1b",
+            )
+            sections["mdna"] = find_section(
+                text,
+                r"item\s*7\.?\s*management'?s discussion",
+                r"item\s*7a|item\s*8",
+            )
         elif form.upper() == "10-Q":
-            risk_pat = re.compile(r"item\s*1a[^\n]*risk factors(?P<section>.*?)item\s*2", re.IGNORECASE | re.DOTALL)
-            mdna_pat = re.compile(r"item\s*2[^\n]*management's discussion and analysis(?P<section>.*?)item\s*3", re.IGNORECASE | re.DOTALL)
-        else:
-            return sections
-
-        m = risk_pat.search(text)
-        if m:
-            sections["risk"] = m.group("section").strip()
-
-        m = mdna_pat.search(text)
-        if m:
-            sections["mdna"] = m.group("section").strip()
+            sections["risk"] = find_section(
+                text,
+                r"item\s*1a\.?\s*risk factors",
+                r"item\s*2",
+            )
+            sections["mdna"] = find_section(
+                text,
+                r"item\s*2\.?\s*management'?s discussion",
+                r"item\s*3",
+            )
 
         return sections
 
@@ -89,12 +127,17 @@ class SECRiskAnalyzer:
     def analyze(self, meta: Dict[str, str]) -> Dict[str, Any]:
         """Analyze a downloaded SEC filing and cache the results."""
         pdf_file = Path("data/sec_reports") / meta["filename"]
+        html_file: Optional[Path] = None
+        if meta.get("source_filename"):
+            potential = Path("data/sec_reports") / meta["source_filename"]
+            if potential.exists():
+                html_file = potential
         json_file = self.analysis_dir / f"{meta['ticker']}_{meta['form']}_{meta['filing_date']}.json"
         if json_file.exists():
             logger.info("Using cached SEC analysis %s", json_file)
             return json.loads(json_file.read_text())
 
-        text = self._extract_text(pdf_file)
+        text = self._extract_text(pdf_file, html_file)
         sections = self._parse_sections(text, meta["form"])
         risk = self._analyze_section(sections.get("risk", ""))
         mdna = self._analyze_section(sections.get("mdna", ""))
