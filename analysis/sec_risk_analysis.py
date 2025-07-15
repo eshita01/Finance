@@ -59,11 +59,14 @@ class SECRiskAnalyzer:
         """Extract risk factors and MD&A sections based on form type."""
         sections: Dict[str, str] = {"risk": "", "mdna": ""}
 
-        text = self._clean_text(text)
+        text = self._clean_text(text).lower()
+
 
         def find_section(src: str, start_pat: str, end_pat: str) -> str:
             start = re.search(start_pat, src, re.IGNORECASE)
             if not start:
+                logger.info("Section start not found: %s", start_pat)
+
                 return ""
             remainder = src[start.end():]
             end = re.search(end_pat, remainder, re.IGNORECASE)
@@ -139,8 +142,18 @@ class SECRiskAnalyzer:
 
         text = self._extract_text(pdf_file, html_file)
         sections = self._parse_sections(text, meta["form"])
-        risk = self._analyze_section(sections.get("risk", ""))
-        mdna = self._analyze_section(sections.get("mdna", ""))
+        risk_text = sections.get("risk", "")
+        mdna_text = sections.get("mdna", "")
+
+        print("Retrieved risk section length:", len(risk_text))
+        print(risk_text[:500])
+        print()
+        print("Retrieved MD&A section length:", len(mdna_text))
+        print(mdna_text[:500])
+        print()
+
+        risk = self._analyze_section(risk_text)
+        mdna = self._analyze_section(mdna_text)
 
         results = {
             "ticker": meta["ticker"],
