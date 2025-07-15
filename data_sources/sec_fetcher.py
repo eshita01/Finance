@@ -3,6 +3,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional, Tuple
+import shutil
 
 from bs4 import BeautifulSoup
 from fpdf import FPDF
@@ -107,11 +108,18 @@ class SECFetcher:
                 form = parts[1]
                 filing_date = parts[2]
                 logger.info("Using cached SEC filing %s", existing)
+                source_name = ""
+                for ext in (".htm", ".html", ".txt"):
+                    candidate = existing.with_suffix(ext)
+                    if candidate.exists():
+                        source_name = candidate.name
+                        break
                 return {
                     "ticker": self.ticker,
                     "form": form,
                     "filing_date": filing_date,
                     "filename": existing.name,
+                    "source_filename": source_name,
                 }
 
             self._download_latest_forms()
@@ -127,17 +135,19 @@ class SECFetcher:
             form, folder, filing_date = latest
             pdf_files = list(folder.rglob("*.pdf"))
             text = ""
+            source_file: Optional[Path] = None
             if pdf_files:
                 pdf_path = pdf_files[0]
                 txt_candidates = list(folder.rglob("*.txt"))
                 if txt_candidates:
-                    text = self._extract_text(txt_candidates[0])
+                    source_file = txt_candidates[0]
+                    text = self._extract_text(source_file)
             else:
                 candidates = list(folder.rglob("*.htm")) + list(folder.rglob("*.html")) + list(folder.rglob("*.txt"))
                 if not candidates:
                     raise FileNotFoundError("No filing document found")
-                candidate = candidates[0]
-                text = self._extract_text(candidate)
+                source_file = candidates[0]
+                text = self._extract_text(source_file)
                 pdf_path = folder / "converted.pdf"
                 self._text_to_pdf(text, pdf_path)
 
@@ -146,6 +156,16 @@ class SECFetcher:
 
             target_name = f"{self.ticker}_{form}_{filing_date}.pdf"
             target_path = self.download_dir / target_name
+            source_name = ""
+            if source_file:
+                source_name = f"{self.ticker}_{form}_{filing_date}{source_file.suffix}"
+                source_target = self.download_dir / source_name
+                if not source_target.exists():
+                    try:
+                        shutil.copyfile(source_file, source_target)
+                    except Exception:
+                        pass
+
             if target_path.exists():
                 logger.info("Using cached SEC filing %s", target_path)
                 return {
@@ -153,15 +173,16 @@ class SECFetcher:
                     "form": form,
                     "filing_date": filing_date,
                     "filename": target_name,
+                    "source_filename": source_name,
                 }
 
             pdf_path.replace(target_path)
             return {
                 "ticker": self.ticker,
                 "form": form,
-
                 "filing_date": filing_date,
                 "filename": target_name,
+                "source_filename": source_name,
             }
         except Exception as e:
             logger.exception("Failed to process downloaded filing: %s", e)
