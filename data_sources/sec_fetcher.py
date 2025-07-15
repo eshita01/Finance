@@ -90,7 +90,10 @@ class SECFetcher:
         pdf.add_page()
         pdf.set_font("Arial", size=12)
         for line in text.splitlines():
-            pdf.multi_cell(0, 10, line)
+            # FPDF expects latin-1 encoded text. Remove unsupported
+            # characters to avoid UnicodeEncodeError when saving.
+            safe_line = line.encode("latin-1", "ignore").decode("latin-1")
+            pdf.multi_cell(0, 10, safe_line)
         pdf.output(str(pdf_path))
 
     def fetch(self) -> Dict[str, str]:
