@@ -1,8 +1,11 @@
 import logging
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional
 
+from bs4 import BeautifulSoup
+from fpdf import FPDF
 from sec_edgar_downloader import Downloader
 
 logger = logging.getLogger(__name__)
@@ -29,6 +32,37 @@ class SECFetcher:
         pattern = f"{self.ticker}_{self.form}_*.pdf"
         files = sorted(self.download_dir.glob(pattern), reverse=True)
         return files[0] if files else None
+
+    def _parse_filing_date(self, text: str) -> str:
+        patterns = [
+            r"FILED AS OF DATE:\s*(\d{8})",
+            r"FILING DATE:\s*(\d{4}-\d{2}-\d{2})",
+            r"Filing Date:\s*(\d{4}-\d{2}-\d{2})",
+        ]
+        for pat in patterns:
+            m = re.search(pat, text, re.IGNORECASE)
+            if m:
+                date = m.group(1)
+                if len(date) == 8:
+                    return f"{date[:4]}-{date[4:6]}-{date[6:]}"
+                return date
+        return datetime.utcnow().date().isoformat()
+
+    def _extract_text(self, file_path: Path) -> str:
+        if file_path.suffix.lower() in {".htm", ".html"}:
+            html = file_path.read_text(errors="ignore")
+            soup = BeautifulSoup(html, "html.parser")
+            return soup.get_text("\n")
+        return file_path.read_text(errors="ignore")
+
+    def _text_to_pdf(self, text: str, pdf_path: Path) -> None:
+        pdf = FPDF()
+        pdf.set_auto_page_break(True, margin=15)
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        for line in text.splitlines():
+            pdf.multi_cell(0, 10, line)
+        pdf.output(str(pdf_path))
 
     def fetch(self) -> Dict[str, str]:
         """Fetch the latest filing PDF and return metadata."""
@@ -60,13 +94,28 @@ class SECFetcher:
             )
             latest_dir = sorted(filings_root.iterdir(), reverse=True)[0]
             pdf_files = list(latest_dir.rglob("*.pdf"))
-            if not pdf_files:
-                raise FileNotFoundError("No PDF in downloaded filing")
-            pdf_path = pdf_files[0]
-            filing_date = latest_dir.name.split("-")[1]
+            text = ""
+            if pdf_files:
+                pdf_path = pdf_files[0]
+                txt_candidates = list(latest_dir.rglob("*.txt"))
+                if txt_candidates:
+                    text = self._extract_text(txt_candidates[0])
+            else:
+                candidates = list(latest_dir.rglob("*.htm")) + list(latest_dir.rglob("*.html")) + list(latest_dir.rglob("*.txt"))
+                if not candidates:
+                    raise FileNotFoundError("No filing document found")
+                candidate = candidates[0]
+                text = self._extract_text(candidate)
+                pdf_path = latest_dir / "converted.pdf"
+                self._text_to_pdf(text, pdf_path)
+
+            if not text:
+                text = self._extract_text(pdf_path) if pdf_path.suffix.lower() != ".pdf" else ""
+
+            filing_date = self._parse_filing_date(text)
             target_name = f"{self.ticker}_{self.form}_{filing_date}.pdf"
             target_path = self.download_dir / target_name
-            pdf_path.rename(target_path)
+            pdf_path.replace(target_path)
             return {
                 "ticker": self.ticker,
                 "form": self.form,
