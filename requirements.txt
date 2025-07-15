@@ -10,3 +10,4 @@ sec-edgar-downloader
 pdfplumber
 beautifulsoup4
 fpdf
+

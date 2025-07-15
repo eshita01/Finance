@@ -6,6 +6,7 @@ from typing import Dict, Optional, Tuple
 
 from bs4 import BeautifulSoup
 from fpdf import FPDF
+
 from sec_edgar_downloader import Downloader
 
 logger = logging.getLogger(__name__)
@@ -94,6 +95,7 @@ class SECFetcher:
 
     def fetch(self) -> Dict[str, str]:
         """Fetch the latest available 10-K or 10-Q and return metadata."""
+
         try:
             logger.info("Checking for existing SEC report")
             existing = self._existing_file()
@@ -154,6 +156,7 @@ class SECFetcher:
             return {
                 "ticker": self.ticker,
                 "form": form,
+
                 "filing_date": filing_date,
                 "filename": target_name,
             }

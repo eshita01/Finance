@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+
 import google.generativeai as genai
 import pdfplumber
 
@@ -15,7 +16,6 @@ class SECRiskAnalyzer:
 
     def __init__(self, api_key: str, model: str = "gemini-2.5-flash") -> None:
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel(model)
         self.analysis_dir = Path("cache/sec_analysis")
         self.analysis_dir.mkdir(parents=True, exist_ok=True)
 
@@ -33,6 +33,7 @@ class SECRiskAnalyzer:
         with pdfplumber.open(pdf_path) as pdf:
             pages = [p.extract_text() or "" for p in pdf.pages]
         return "\n".join(pages)
+
 
     def _parse_sections(self, text: str, form: str) -> Dict[str, str]:
         """Extract risk factors and MD&A sections based on form type."""

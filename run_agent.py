@@ -121,7 +121,10 @@ def build_graph(
             **state.get("peer_insights", {}),
             **{
                 "risk_summary": state.get("sec_analysis", {}).get("risk_summary"),
-                "mdna_summary": state.get("sec_analysis", {}).get("mdna_summary"),
+                "mdna_summary": state.get("sec_analysis", {}).get("mdna_summary"),=======
+                "risk_summary": state.get("sec_analysis", {}).get("risk_factors", {}).get("summary"),
+                "mdna_summary": state.get("sec_analysis", {}).get("mdna", {}).get("summary"),
+
             },
         }
 
