@@ -15,7 +15,9 @@ class SECRiskAnalyzer:
     """Parse SEC filing PDF and summarize key risk sections using an LLM."""
 
     def __init__(self, api_key: str, model: str = "gemini-2.5-flash") -> None:
+        """Configure the Google Generative AI model and cache directory."""
         genai.configure(api_key=api_key)
+        self.model = genai.GenerativeModel(model)
         self.analysis_dir = Path("cache/sec_analysis")
         self.analysis_dir.mkdir(parents=True, exist_ok=True)
 
