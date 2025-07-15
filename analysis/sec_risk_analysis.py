@@ -61,10 +61,12 @@ class SECRiskAnalyzer:
 
         text = self._clean_text(text).lower()
 
+
         def find_section(src: str, start_pat: str, end_pat: str) -> str:
             start = re.search(start_pat, src, re.IGNORECASE)
             if not start:
                 logger.info("Section start not found: %s", start_pat)
+
                 return ""
             remainder = src[start.end():]
             end = re.search(end_pat, remainder, re.IGNORECASE)
