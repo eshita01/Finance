@@ -1,5 +1,6 @@
 import argparse
 import logging
+import json
 from datetime import datetime, timezone
 from typing import TypedDict, Dict, Any, List
 
@@ -10,10 +11,12 @@ from data_sources.stock_data_fetcher import StockDataFetcher
 from data_sources.news_sentiment_fetcher import NewsSentimentFetcher
 from data_sources.insider_data_fetcher import InsiderDataFetcher
 from data_sources.peer_data_fetcher import PeerDataFetcher
+from data_sources.sec_fetcher import SECFetcher
 from analysis.technical_analysis import compute_indicators, analyze
 from analysis.sentiment_analysis import analyze as analyze_sentiment
 from analysis.insider_analysis import analyze as analyze_insider
 from analysis.peer_analysis import analyze as analyze_peers
+from analysis.sec_risk_analysis import SECRiskAnalyzer
 from decision.decision_maker import DecisionMaker
 from config import get_api_key, get_alpha_vantage_key, get_finnhub_key
 
@@ -28,6 +31,8 @@ class AgentState(TypedDict, total=False):
     sentiment: Dict[str, Any]
     insider_insights: Dict[str, Any]
     peer_insights: Dict[str, Any]
+    sec_meta: Dict[str, Any]
+    sec_analysis: Dict[str, Any]
     decision: str
 
 
@@ -38,6 +43,8 @@ def build_graph(
     news_fetcher = NewsSentimentFetcher([ticker], alpha_key, base_date=base_date)
     insider_fetcher = InsiderDataFetcher(ticker, finnhub_key, base_date=base_date)
     peer_fetcher = PeerDataFetcher(ticker, finnhub_key, alpha_key, base_date=base_date)
+    sec_fetcher = SECFetcher(ticker)
+    sec_analyzer = SECRiskAnalyzer(gemini_key)
     decider = DecisionMaker(gemini_key)
 
     def fetch_node(state: AgentState) -> AgentState:
@@ -73,6 +80,20 @@ def build_graph(
             "insider_insights": insider_insights,
         }
 
+    def sec_fetch_node(state: AgentState) -> AgentState:
+        meta = sec_fetcher.fetch()
+        print("\n=== SEC Fetch Node ===")
+        print("Downloaded SEC filing:", meta)
+        print()
+        return {"sec_meta": meta}
+
+    def sec_analyze_node(state: AgentState) -> AgentState:
+        analysis = sec_analyzer.analyze(state["sec_meta"])
+        print("\n=== SEC Analysis Node ===")
+        print(json.dumps(analysis, indent=2)[:500])
+        print()
+        return {"sec_analysis": analysis}
+
     def peer_fetch_node(state: AgentState) -> AgentState:
         peer_data = peer_fetcher.fetch()
 
@@ -98,7 +119,19 @@ def build_graph(
             **state.get("sentiment", {}),
             **state.get("insider_insights", {}),
             **state.get("peer_insights", {}),
+            **{
+                "risk_summary": state.get("sec_analysis", {}).get("risk_summary"),
+                "mdna_summary": state.get("sec_analysis", {}).get("mdna_summary"),
+            },
         }
+
+        if "sec_meta" in state:
+            try:
+                filing_date = datetime.fromisoformat(state["sec_meta"]["filing_date"])
+                age_days = (base_date.date() - filing_date.date()).days
+                combined["sec_filing_age_days"] = age_days
+            except Exception:
+                pass
         decision = decider.decide(combined)
 
         print("\n=== Decision Node ===")
@@ -107,12 +140,16 @@ def build_graph(
     graph = StateGraph(AgentState)
     graph.add_node("fetch", fetch_node)
     graph.add_node("analyze", analysis_node)
+    graph.add_node("sec_fetch", sec_fetch_node)
+    graph.add_node("sec_analyze", sec_analyze_node)
     graph.add_node("peer_fetch", peer_fetch_node)
     graph.add_node("peer_analyze", peer_analysis_node)
     graph.add_node("decide", decision_node)
 
     graph.add_edge("fetch", "analyze")
-    graph.add_edge("analyze", "peer_fetch")
+    graph.add_edge("analyze", "sec_fetch")
+    graph.add_edge("sec_fetch", "sec_analyze")
+    graph.add_edge("sec_analyze", "peer_fetch")
     graph.add_edge("peer_fetch", "peer_analyze")
     graph.add_edge("peer_analyze", "decide")
     graph.add_edge("decide", END)
