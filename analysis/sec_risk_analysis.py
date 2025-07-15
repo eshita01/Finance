@@ -63,16 +63,21 @@ class SECRiskAnalyzer:
 
 
         def find_section(src: str, start_pat: str, end_pat: str) -> str:
-            start = re.search(start_pat, src, re.IGNORECASE)
-            if not start:
+            """Return the longest matching section between start and end."""
+            matches = list(re.finditer(start_pat, src, re.IGNORECASE))
+            if not matches:
                 logger.info("Section start not found: %s", start_pat)
-
                 return ""
-            remainder = src[start.end():]
-            end = re.search(end_pat, remainder, re.IGNORECASE)
-            if end:
-                return remainder[: end.start()].strip()
-            return remainder.strip()
+
+            best = ""
+            for m in matches:
+                remainder = src[m.end():]
+                end = re.search(end_pat, remainder, re.IGNORECASE)
+                candidate = remainder[: end.start()].strip() if end else remainder.strip()
+                if len(candidate) > len(best):
+                    best = candidate
+
+            return best
 
         if form.upper() == "10-K":
             sections["risk"] = find_section(
@@ -82,7 +87,7 @@ class SECRiskAnalyzer:
             )
             sections["mdna"] = find_section(
                 text,
-                r"item\s*7\.?\s*management'?s discussion",
+                r"item\s*7\.?\s*management['’]?s\s*discussion",
                 r"item\s*7a|item\s*8",
             )
         elif form.upper() == "10-Q":
@@ -93,7 +98,7 @@ class SECRiskAnalyzer:
             )
             sections["mdna"] = find_section(
                 text,
-                r"item\s*2\.?\s*management'?s discussion",
+                r"item\s*2\.?\s*management['’]?s\s*discussion",
                 r"item\s*3",
             )
 
