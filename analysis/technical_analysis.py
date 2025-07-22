@@ -127,7 +127,6 @@ def analyze(df: pd.DataFrame) -> Dict[str, str]:
         latest = df.iloc[-1]
 
         price_col = "Adj Close" if "Adj Close" in df.columns else "Close"
-
         # RSI
         if pd.notna(latest["RSI_14"]) and latest["RSI_14"] > 70:
             signal["rsi"] = "overbought"
@@ -165,6 +164,7 @@ def analyze(df: pd.DataFrame) -> Dict[str, str]:
 
         # Momentum based on Rate of Change
         if pd.notna(latest["Momentum_10"]) and latest["Momentum_10"] > 0:
+
             signal["momentum"] = "positive"
         else:
             signal["momentum"] = "negative"

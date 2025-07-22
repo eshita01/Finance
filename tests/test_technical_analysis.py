@@ -31,8 +31,7 @@ def _sample_small_data():
         "Volume": range(100, 107)
     }, index=dates)
     return data
-
-
+  
 def test_compute_indicators_adds_columns():
     df = _sample_data()
     result = ta.compute_indicators(df)
@@ -62,7 +61,6 @@ def test_analyze_returns_all_signals():
         "volatility",
         "momentum",
     }
-
 
 def test_small_dataset_computes_indicators():
     df = ta.compute_indicators(_sample_small_data())
