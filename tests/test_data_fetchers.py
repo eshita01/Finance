@@ -7,6 +7,7 @@ import sys
 # directly works from any location.
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
+
 from data_sources.stock_data_fetcher import StockDataFetcher
 from data_sources.news_sentiment_fetcher import NewsSentimentFetcher
 from data_sources.insider_data_fetcher import InsiderDataFetcher
@@ -29,6 +30,7 @@ def main(ticker: str, date_str: str | None = None) -> None:
         print(f"Missing API key: {exc}")
         print("Set the required keys in a .env file or environment variables to run this test.")
         return
+
 
     print("=== StockDataFetcher ===")
     stock = StockDataFetcher([ticker], end_date=base_date)
