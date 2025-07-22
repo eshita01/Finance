@@ -101,6 +101,7 @@ def compute_indicators(data: pd.DataFrame) -> pd.DataFrame:
             )
             df["Momentum_10"] = pd.Series([pd.NA] * len(df), index=df.index)
 
+
         return df
     except Exception as e:
         logger.exception("Error computing indicators: %s", e)
@@ -157,6 +158,7 @@ def analyze(df: pd.DataFrame) -> Dict[str, str]:
 
         # Momentum based on Rate of Change
         if pd.notna(latest["Momentum_10"]) and latest["Momentum_10"] > 0:
+
             signal["momentum"] = "positive"
         else:
             signal["momentum"] = "negative"
