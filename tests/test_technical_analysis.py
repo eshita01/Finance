@@ -21,6 +21,17 @@ def _sample_data():
     return data
 
 
+def _sample_small_data():
+    dates = pd.date_range("2024-01-01", periods=7, freq="D")
+    data = pd.DataFrame({
+        "Open": range(1, 8),
+        "High": range(2, 9),
+        "Low": range(1, 8),
+        "Close": range(1, 8),
+        "Volume": range(100, 107)
+    }, index=dates)
+    return data
+  
 def test_compute_indicators_adds_columns():
     df = _sample_data()
     result = ta.compute_indicators(df)
@@ -50,3 +61,11 @@ def test_analyze_returns_all_signals():
         "volatility",
         "momentum",
     }
+
+def test_small_dataset_computes_indicators():
+    df = ta.compute_indicators(_sample_small_data())
+    latest = df.iloc[-1]
+    assert pd.notna(latest["RSI_14"])
+    assert pd.notna(latest["ATR_14"])
+    assert pd.notna(latest["ADX_14"])
+    assert pd.notna(latest["Momentum_10"])
