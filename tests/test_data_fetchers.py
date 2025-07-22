@@ -1,5 +1,12 @@
 import argparse
 from datetime import datetime, timezone
+import os
+import sys
+
+# Ensure the repository root is on the Python path so running this script
+# directly works from any location.
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
 
 from data_sources.stock_data_fetcher import StockDataFetcher
 from data_sources.news_sentiment_fetcher import NewsSentimentFetcher
@@ -16,8 +23,14 @@ def main(ticker: str, date_str: str | None = None) -> None:
         else datetime.now(timezone.utc)
     )
 
-    alpha_key = get_alpha_vantage_key()
-    finnhub_key = get_finnhub_key()
+    try:
+        alpha_key = get_alpha_vantage_key()
+        finnhub_key = get_finnhub_key()
+    except ValueError as exc:
+        print(f"Missing API key: {exc}")
+        print("Set the required keys in a .env file or environment variables to run this test.")
+        return
+
 
     print("=== StockDataFetcher ===")
     stock = StockDataFetcher([ticker], end_date=base_date)
