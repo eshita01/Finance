@@ -63,18 +63,44 @@ def compute_indicators(data: pd.DataFrame) -> pd.DataFrame:
         df["BBL_20"] = bb.bollinger_lband()
         df["BBH_20"] = bb.bollinger_hband()
 
-        # Fast reacting indicators using shorter windows
-        df["RSI_14"] = ta.momentum.rsi(df[price_col], window=14)
-        atr = ta.volatility.AverageTrueRange(
-            high=df["High"], low=df["Low"], close=df[price_col], window=14
+        # Fast reacting indicators using shorter windows. All are computed
+        # from the same price series fetched above. No additional API call
+        # is made; we simply operate on the most recent 14 rows when needed.
+        df["RSI_14"] = (
+            ta.momentum.rsi(df[price_col], window=14)
+            if len(df) >= 14
+            else pd.Series([pd.NA] * len(df), index=df.index)
         )
-        df["ATR_14"] = atr.average_true_range()
-        adx = ta.trend.ADXIndicator(
-            high=df["High"], low=df["Low"], close=df[price_col], window=14
-        )
-        df["ADX_14"] = adx.adx()
-        momentum = ta.momentum.ROCIndicator(df[price_col], window=10)
-        df["Momentum_10"] = momentum.roc()
+
+        if len(df) >= 14:
+            atr = ta.volatility.AverageTrueRange(
+                high=df["High"], low=df["Low"], close=df[price_col], window=14
+            )
+            df["ATR_14"] = atr.average_true_range()
+        else:
+            logger.warning("Not enough rows for ATR_14; expected at least 14")
+            df["ATR_14"] = pd.Series([pd.NA] * len(df), index=df.index)
+
+        if len(df) >= 28:
+            adx = ta.trend.ADXIndicator(
+                high=df["High"], low=df["Low"], close=df[price_col], window=14
+            )
+            df["ADX_14"] = adx.adx()
+        else:
+            logger.warning(
+                "Not enough rows for ADX_14; expected at least %d", 28
+            )
+            df["ADX_14"] = pd.Series([pd.NA] * len(df), index=df.index)
+
+        if len(df) >= 10:
+            momentum = ta.momentum.ROCIndicator(df[price_col], window=10)
+            df["Momentum_10"] = momentum.roc()
+        else:
+            logger.warning(
+                "Not enough rows for Momentum_10; expected at least 10"
+            )
+            df["Momentum_10"] = pd.Series([pd.NA] * len(df), index=df.index)
+
 
         return df
     except Exception as e:
@@ -118,20 +144,21 @@ def analyze(df: pd.DataFrame) -> Dict[str, str]:
             signal["bb"] = "neutral"
 
         # Trend strength from ADX
-        if latest["ADX_14"] > 25:
+        if pd.notna(latest["ADX_14"]) and latest["ADX_14"] > 25:
             signal["trend_strength"] = "strong"
         else:
             signal["trend_strength"] = "weak"
 
         # Volatility based on ATR
-        atr_avg = df["ATR_14"].mean()
-        if latest["ATR_14"] > atr_avg * 1.5:
+        atr_avg = df["ATR_14"].dropna().mean()
+        if pd.notna(latest["ATR_14"]) and atr_avg and latest["ATR_14"] > atr_avg * 1.5:
             signal["volatility"] = "high"
         else:
             signal["volatility"] = "normal"
 
         # Momentum based on Rate of Change
-        if latest["Momentum_10"] > 0:
+        if pd.notna(latest["Momentum_10"]) and latest["Momentum_10"] > 0:
+
             signal["momentum"] = "positive"
         else:
             signal["momentum"] = "negative"

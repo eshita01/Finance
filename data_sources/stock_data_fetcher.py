@@ -10,7 +10,12 @@ logger = logging.getLogger(__name__)
 
 
 class StockDataFetcher:
-    """Fetch historical OHLCV data for given tickers."""
+    """Fetch historical OHLCV data for given tickers.
+
+    The fetcher downloads one continuous price history window (30 days by
+    default). Fast-reacting indicators later in the pipeline use slices of this
+    window (e.g. the last 14 rows) rather than performing additional API calls.
+    """
 
     def __init__(self, tickers: List[str], lookback_days: int = 30, interval: str = "1d", end_date: Optional[datetime] = None):
         """Initialize the fetcher.
