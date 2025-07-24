@@ -41,7 +41,12 @@ def analyze(data: Dict[str, Any]) -> Dict[str, Any]:
                     price_change_7d = (last - prev7) / prev7 * 100
 
                 indicators = compute_indicators(df)
-                rsi = float(indicators["RSI_14"].iloc[-1])
+                rsi_val = indicators["RSI_14"].iloc[-1]
+                if pd.notna(rsi_val):
+                    try:
+                        rsi = float(rsi_val)
+                    except (TypeError, ValueError):
+                        rsi = None
 
             sentiment = news.get(peer, {})
             news_score = 0.0
