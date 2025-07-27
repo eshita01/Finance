@@ -42,13 +42,15 @@ class DecisionMaker:
             f"Bollinger Bands signal: {signals.get('bb')}\n"
             f"Average sentiment: {signals.get('average_sentiment')}\n"
             f"Tone: {signals.get('tone')}\n"
+            f"Dominant tone: {signals.get('dominant_tone')}\n"
+            f"Tone distribution: {signals.get('tone_distribution')}\n"
             f"Urgency: {signals.get('urgency')}\n"
-            f"Trend: {signals.get('trend')}\n"
             f"Insider score: {signals.get('insider_sentiment_score')}\n"
             f"Insider summary: {signals.get('summary')}\n"
             f"Risk summary: {signals.get('risk_summary')}\n"
             f"MD&A summary: {signals.get('mdna_summary')}\n"
             f"Filing age (days): {signals.get('sec_filing_age_days')}\n"
+            f"Highlight headline: {signals.get('highlight_headline')}\n"
 
             f"Peer data:\n{peer_summary}\n"
         )

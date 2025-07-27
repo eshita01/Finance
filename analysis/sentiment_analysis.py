@@ -13,36 +13,62 @@ def analyze(feed: List[Dict[str, Any]]) -> Dict[str, Any]:
 
         scores = []
         headlines = []
+        pos = neg = neu = 0
+        highlight_headline = None
+
         for item in feed:
-            if 'overall_sentiment_score' in item:
+            score = None
+            if "overall_sentiment_score" in item:
                 try:
-                    scores.append(float(item['overall_sentiment_score']))
+                    score = float(item["overall_sentiment_score"])
+                    scores.append(score)
                 except (TypeError, ValueError):
-                    continue
-            if 'title' in item:
-                headlines.append(item['title'])
+                    score = None
+            if "title" in item:
+                headlines.append(item["title"])
 
-        avg_score = mean(scores) if scores else 0.0
-        tone = 'positive' if avg_score > 0.2 else 'negative' if avg_score < -0.2 else 'neutral'
+            if score is not None:
+                if score > 0.2:
+                    pos += 1
+                elif score < -0.2:
+                    neg += 1
+                else:
+                    neu += 1
 
-        trend = 'flat'
-        if len(scores) >= 2:
-            if scores[-1] > scores[0]:
-                trend = 'up'
-            elif scores[-1] < scores[0]:
-                trend = 'down'
+                if abs(score) > 0.8 and not highlight_headline:
+                    highlight_headline = item.get("title")
 
-        urgency = 'high' if len(feed) > 30 else 'normal'
-        summary = ' | '.join(headlines[:3])
+        if scores:
+            avg_score = mean(scores)
+        else:
+            avg_score = 0.0
 
-        return {
-            'average_sentiment': avg_score,
-            'tone': tone,
-            'headline_summary': summary,
-            'urgency': urgency,
-            'hype': len(feed),
-            'trend': trend,
+        if avg_score > 0.2:
+            tone = "positive"
+        elif avg_score < -0.2:
+            tone = "negative"
+        else:
+            tone = "neutral"
+
+        tone_distribution = {"positive": pos, "neutral": neu, "negative": neg}
+        dominant_tone = max(tone_distribution, key=tone_distribution.get)
+
+        urgency = "high" if len(feed) > 30 else "normal"
+        summary = " | ".join(headlines[:3])
+
+        result = {
+            "average_sentiment": avg_score,
+            "tone": tone,
+            "tone_distribution": tone_distribution,
+            "dominant_tone": dominant_tone,
+            "headline_summary": summary,
+            "urgency": urgency,
+            "hype": len(feed),
         }
+        if highlight_headline:
+            result["highlight_headline"] = highlight_headline
+
+        return result
     except Exception as e:
         logger.exception("Sentiment analysis failed: %s", e)
         raise
