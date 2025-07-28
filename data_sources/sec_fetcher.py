@@ -28,10 +28,21 @@ class SECFetcher:
         self.download_dir.mkdir(parents=True, exist_ok=True)
         self.downloader = Downloader(company, email, str(self.download_dir))
 
-    def _existing_file(self) -> Optional[Path]:
+    def _existing_file(self, cutoff_date: datetime) -> Optional[Path]:
+        cutoff = cutoff_date.replace(tzinfo=None)
         pattern = f"{self.ticker}_*_*.pdf"
         files = sorted(self.download_dir.glob(pattern), reverse=True)
-        return files[0] if files else None
+        for file in files:
+            parts = file.stem.split("_")
+            if len(parts) < 3:
+                continue
+            try:
+                file_date = datetime.strptime(parts[2], "%Y-%m-%d")
+            except ValueError:
+                continue
+            if file_date <= cutoff:
+                return file
+        return None
 
     def _parse_filing_date(self, text: str) -> str:
         patterns = [
@@ -64,25 +75,32 @@ class SECFetcher:
             except Exception as exc:
                 logger.warning("Download %s failed: %s", form, exc)
 
-    def _latest_local_filing(self) -> Optional[Tuple[str, Path, str]]:
-        """Return (form, path_to_folder, filing_date) for the most recent filing."""
+    def _latest_local_filing(self, cutoff_date: datetime) -> Optional[Tuple[str, Path, str]]:
+        """Return (form, path_to_folder, filing_date) for the most recent filing before cutoff."""
+        cutoff = cutoff_date.replace(tzinfo=None)
         filings_root = self.download_dir / "sec-edgar-filings" / self.ticker
         latest_info: Optional[Tuple[str, Path, str]] = None
+        latest_dt: Optional[datetime] = None
         for form in ("10-K", "10-Q"):
             form_dir = filings_root / form
             if not form_dir.exists():
                 continue
             subdirs = sorted(form_dir.iterdir(), reverse=True)
-            if not subdirs:
-                continue
-            folder = subdirs[0]
-            candidates = list(folder.rglob("*.txt")) + list(folder.rglob("*.htm")) + list(folder.rglob("*.html"))
-            if not candidates:
-                continue
-            text = self._extract_text(candidates[0])
-            filing_date = self._parse_filing_date(text)
-            if latest_info is None or filing_date > latest_info[2]:
-                latest_info = (form, folder, filing_date)
+            for folder in subdirs:
+                candidates = list(folder.rglob("*.txt")) + list(folder.rglob("*.htm")) + list(folder.rglob("*.html"))
+                if not candidates:
+                    continue
+                text = self._extract_text(candidates[0])
+                filing_date = self._parse_filing_date(text)
+                try:
+                    file_dt = datetime.strptime(filing_date, "%Y-%m-%d")
+                except ValueError:
+                    continue
+                if file_dt <= cutoff:
+                    if latest_dt is None or file_dt > latest_dt:
+                        latest_dt = file_dt
+                        latest_info = (form, folder, filing_date)
+                    break
         return latest_info
 
     def _text_to_pdf(self, text: str, pdf_path: Path) -> None:
@@ -97,12 +115,12 @@ class SECFetcher:
             pdf.multi_cell(0, 10, safe_line)
         pdf.output(str(pdf_path))
 
-    def fetch(self) -> Dict[str, str]:
-        """Fetch the latest available 10-K or 10-Q and return metadata."""
-
+    def fetch(self, cutoff_date: datetime) -> Dict[str, str]:
+        """Fetch the latest available 10-K or 10-Q on or before ``cutoff_date`` and return metadata."""
+        cutoff = cutoff_date.replace(tzinfo=None)
         try:
-            logger.info("Checking for existing SEC report")
-            existing = self._existing_file()
+            logger.info("Checking for existing SEC report before %s", cutoff.date())
+            existing = self._existing_file(cutoff)
             if existing:
                 parts = existing.stem.split("_")
                 form = parts[1]
@@ -128,11 +146,14 @@ class SECFetcher:
             raise
 
         try:
-            latest = self._latest_local_filing()
+            latest = self._latest_local_filing(cutoff)
             if not latest:
                 raise FileNotFoundError("No filing document found")
 
             form, folder, filing_date = latest
+            logger.info(
+                "Selected filing %s %s dated %s", self.ticker, form, filing_date
+            )
             pdf_files = list(folder.rglob("*.pdf"))
             text = ""
             source_file: Optional[Path] = None
