@@ -81,14 +81,14 @@ def build_graph(
         }
 
     def sec_fetch_node(state: AgentState) -> AgentState:
-        meta = sec_fetcher.fetch()
+        meta = sec_fetcher.fetch(base_date)
         print("\n=== SEC Fetch Node ===")
         print("Downloaded SEC filing:", meta)
         print()
         return {"sec_meta": meta}
 
     def sec_analyze_node(state: AgentState) -> AgentState:
-        analysis = sec_analyzer.analyze(state["sec_meta"])
+        analysis = sec_analyzer.analyze(state["sec_meta"], base_date)
         print("\n=== SEC Analysis Node ===")
         print(json.dumps(analysis, indent=2)[:500])
         print()

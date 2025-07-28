@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -132,15 +133,34 @@ class SECRiskAnalyzer:
         return {"summary": summary, "sentiment": sentiment, "score": score}
 
 
-    def analyze(self, meta: Dict[str, str]) -> Dict[str, Any]:
-        """Analyze a downloaded SEC filing and cache the results."""
+    def analyze(self, meta: Dict[str, str], cutoff_date: Optional[datetime] = None) -> Dict[str, Any]:
+        """Analyze a downloaded SEC filing and cache the results.
+
+        Parameters
+        ----------
+        meta : Dict[str, str]
+            Metadata dictionary returned by ``SECFetcher``.
+        cutoff_date : datetime, optional
+            Backtest date. The function will refuse to use summaries from
+            filings after this date.
+        """
         pdf_file = Path("data/sec_reports") / meta["filename"]
         html_file: Optional[Path] = None
         if meta.get("source_filename"):
             potential = Path("data/sec_reports") / meta["source_filename"]
             if potential.exists():
                 html_file = potential
+
         json_file = self.analysis_dir / f"{meta['ticker']}_{meta['form']}_{meta['filing_date']}.json"
+
+        if cutoff_date:
+            try:
+                file_dt = datetime.strptime(meta["filing_date"], "%Y-%m-%d")
+                if file_dt > cutoff_date:
+                    raise ValueError("Filing date is after cutoff_date")
+            except ValueError as exc:
+                logger.warning("Invalid filing date %s: %s", meta.get("filing_date"), exc)
+
         if json_file.exists():
             logger.info("Using cached SEC analysis %s", json_file)
             return json.loads(json_file.read_text())
