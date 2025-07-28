@@ -29,6 +29,8 @@ class SECFetcher:
         self.downloader = Downloader(company, email, str(self.download_dir))
 
     def _existing_file(self, cutoff_date: datetime) -> Optional[Path]:
+        cutoff = cutoff_date.replace(tzinfo=None)
+
         pattern = f"{self.ticker}_*_*.pdf"
         files = sorted(self.download_dir.glob(pattern), reverse=True)
         for file in files:
@@ -39,7 +41,8 @@ class SECFetcher:
                 file_date = datetime.strptime(parts[2], "%Y-%m-%d")
             except ValueError:
                 continue
-            if file_date <= cutoff_date:
+            if file_date <= cutoff:
+
                 return file
         return None
 
@@ -76,6 +79,8 @@ class SECFetcher:
 
     def _latest_local_filing(self, cutoff_date: datetime) -> Optional[Tuple[str, Path, str]]:
         """Return (form, path_to_folder, filing_date) for the most recent filing before cutoff."""
+        cutoff = cutoff_date.replace(tzinfo=None)
+
         filings_root = self.download_dir / "sec-edgar-filings" / self.ticker
         latest_info: Optional[Tuple[str, Path, str]] = None
         latest_dt: Optional[datetime] = None
@@ -94,7 +99,8 @@ class SECFetcher:
                     file_dt = datetime.strptime(filing_date, "%Y-%m-%d")
                 except ValueError:
                     continue
-                if file_dt <= cutoff_date:
+                if file_dt <= cutoff:
+
                     if latest_dt is None or file_dt > latest_dt:
                         latest_dt = file_dt
                         latest_info = (form, folder, filing_date)
@@ -115,10 +121,11 @@ class SECFetcher:
 
     def fetch(self, cutoff_date: datetime) -> Dict[str, str]:
         """Fetch the latest available 10-K or 10-Q on or before ``cutoff_date`` and return metadata."""
-
+        cutoff = cutoff_date.replace(tzinfo=None)
         try:
-            logger.info("Checking for existing SEC report before %s", cutoff_date.date())
-            existing = self._existing_file(cutoff_date)
+            logger.info("Checking for existing SEC report before %s", cutoff.date())
+            existing = self._existing_file(cutoff)
+
             if existing:
                 parts = existing.stem.split("_")
                 form = parts[1]
@@ -144,7 +151,8 @@ class SECFetcher:
             raise
 
         try:
-            latest = self._latest_local_filing(cutoff_date)
+            latest = self._latest_local_filing(cutoff)
+
             if not latest:
                 raise FileNotFoundError("No filing document found")
 
