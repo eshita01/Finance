@@ -158,6 +158,7 @@ class SECRiskAnalyzer:
                 cutoff = cutoff_date.replace(tzinfo=None)
                 file_dt = datetime.strptime(meta["filing_date"], "%Y-%m-%d")
                 if file_dt > cutoff:
+
                     raise ValueError("Filing date is after cutoff_date")
             except ValueError as exc:
                 logger.warning("Invalid filing date %s: %s", meta.get("filing_date"), exc)
