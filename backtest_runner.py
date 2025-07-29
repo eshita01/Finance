@@ -1,5 +1,6 @@
 import argparse
 import csv
+import json
 import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -253,6 +254,7 @@ def main() -> None:
         )
         idx = dates.index(day)
 
+
         def future_price(offset: int) -> Any:
             target = idx + offset
             if target < len(dates):
@@ -276,7 +278,6 @@ def main() -> None:
             if write_header:
                 writer.writeheader()
             writer.writerow(row)
-
 
 
 if __name__ == "__main__":
