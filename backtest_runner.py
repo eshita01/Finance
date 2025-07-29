@@ -1,4 +1,5 @@
 import argparse
+import csv
 import json
 import logging
 from datetime import datetime, timedelta, timezone
@@ -241,13 +242,19 @@ def main() -> None:
     if "Adj Close" in prices.columns:
         price_col = "Adj Close"
 
-    results: List[Dict[str, Any]] = []
     dates = list(prices.index)
+
+    out_dir = Path("results")
+    out_dir.mkdir(exist_ok=True)
 
     for day in trading_days:
         logging.info("Running backtest for %s", day.date())
-        decision = run_for_date(args.ticker, day.to_pydatetime().replace(tzinfo=timezone.utc), keys)
+        decision = run_for_date(
+            args.ticker, day.to_pydatetime().replace(tzinfo=timezone.utc), keys
+        )
         idx = dates.index(day)
+
+
         def future_price(offset: int) -> Any:
             target = idx + offset
             if target < len(dates):
@@ -263,13 +270,14 @@ def main() -> None:
             "close_price_14d": future_price(14),
             "close_price_30d": future_price(30),
         }
-        results.append(row)
 
-    out_dir = Path("results")
-    out_dir.mkdir(exist_ok=True)
-    file_name = f"backtest_results_{start_date.strftime('%m_%Y')}.json"
-    with (out_dir / file_name).open("w") as f:
-        json.dump(results, f, indent=2)
+        month_file = out_dir / f"backtest_results_{day.strftime('%m_%Y')}.csv"
+        write_header = not month_file.exists()
+        with month_file.open("a", newline="") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=row.keys())
+            if write_header:
+                writer.writeheader()
+            writer.writerow(row)
 
 
 if __name__ == "__main__":
