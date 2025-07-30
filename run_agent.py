@@ -122,6 +122,8 @@ def build_graph(
             **{
                 "risk_summary": state.get("sec_analysis", {}).get("risk_summary"),
                 "mdna_summary": state.get("sec_analysis", {}).get("mdna_summary"),
+                "risk_sentiment": state.get("sec_analysis", {}).get("risk_sentiment"),
+                "mdna_sentiment": state.get("sec_analysis", {}).get("mdna_sentiment"),
             },
         }
 

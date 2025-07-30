@@ -2,6 +2,7 @@ import argparse
 import csv
 import json
 import logging
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, TypedDict
@@ -44,9 +45,9 @@ class AgentState(TypedDict, total=False):
 
 
 class SimpleDecisionMaker(DecisionMaker):
-    """DecisionMaker variant that only returns a single word."""
+    """DecisionMaker variant that only returns a single word and logs prompts."""
 
-    def decide(self, signals: Dict[str, Any]) -> str:  # type: ignore[override]
+    def decide(self, signals: Dict[str, Any], run_date: datetime) -> str:  # type: ignore[override]
         peer_table = signals.get("peer_table", {})
         peer_lines = []
         for sym, info in peer_table.items():
@@ -71,19 +72,33 @@ class SimpleDecisionMaker(DecisionMaker):
             f"RSI signal: {signals.get('rsi')}\n"
             f"MACD signal: {signals.get('macd')}\n"
             f"Bollinger Bands signal: {signals.get('bb')}\n"
+            f"Trend strength: {signals.get('trend_strength')}\n"
+            f"Volatility: {signals.get('volatility')}\n"
+            f"Momentum: {signals.get('momentum')}\n"
             f"Average sentiment: {signals.get('average_sentiment')}\n"
             f"Tone: {signals.get('tone')}\n"
             f"Dominant tone: {signals.get('dominant_tone')}\n"
             f"Tone distribution: {signals.get('tone_distribution')}\n"
+            f"Headline summary: {signals.get('headline_summary')}\n"
             f"Urgency: {signals.get('urgency')}\n"
+            f"Hype: {signals.get('hype')}\n"
             f"Insider score: {signals.get('insider_sentiment_score')}\n"
             f"Insider summary: {signals.get('summary')}\n"
             f"Risk summary: {signals.get('risk_summary')}\n"
+            f"Risk sentiment: {signals.get('risk_sentiment')}\n"
             f"MD&A summary: {signals.get('mdna_summary')}\n"
+            f"MD&A sentiment: {signals.get('mdna_sentiment')}\n"
             f"Filing age (days): {signals.get('sec_filing_age_days')}\n"
             f"Highlight headline: {signals.get('highlight_headline')}\n"
             f"Peer data:\n{peer_summary}\n"
         )
+        log_file = Path("results") / "gemini_prompts.log"
+        try:
+            log_file.parent.mkdir(exist_ok=True)
+            with log_file.open("a", encoding="utf-8") as f:
+                f.write(f"{run_date.date().isoformat()} | {prompt}\n")
+        except Exception:
+            logging.getLogger(__name__).exception("Failed writing prompt log")
         try:
             logging.getLogger(__name__).info("Sending prompt to Gemini")
             response = self.model.generate_content(prompt)
@@ -155,6 +170,8 @@ def build_graph(
             **{
                 "risk_summary": state.get("sec_analysis", {}).get("risk_summary"),
                 "mdna_summary": state.get("sec_analysis", {}).get("mdna_summary"),
+                "risk_sentiment": state.get("sec_analysis", {}).get("risk_sentiment"),
+                "mdna_sentiment": state.get("sec_analysis", {}).get("mdna_sentiment"),
             },
         }
 
@@ -165,7 +182,7 @@ def build_graph(
                 combined["sec_filing_age_days"] = age_days
             except Exception:
                 pass
-        decision = decider.decide(combined)
+        decision = decider.decide(combined, base_date)
         return {"decision": decision}
 
     graph = StateGraph(AgentState)
@@ -278,6 +295,8 @@ def main() -> None:
             if write_header:
                 writer.writeheader()
             writer.writerow(row)
+
+        time.sleep(20)
 
 
 if __name__ == "__main__":
