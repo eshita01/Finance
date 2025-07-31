@@ -270,6 +270,7 @@ def main() -> None:
     run_key = f"{args.ticker}_{date_key}"
     cache_dir = Path("data/news_sentiment") / date_key
     result_dir = Path("results/news_analysis") / date_key
+
     cache_dir.mkdir(parents=True, exist_ok=True)
     result_dir.mkdir(parents=True, exist_ok=True)
     price_end = end_date + timedelta(days=31)
