@@ -266,9 +266,11 @@ def main() -> None:
 
     trading_days = get_trading_days(args.ticker, start_date, end_date)
 
-    run_key = f"{args.ticker}_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}"
-    cache_dir = Path("data/news_sentiment") / run_key
-    result_dir = Path("results/news_analysis") / run_key
+    date_key = f"{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}"
+    run_key = f"{args.ticker}_{date_key}"
+    cache_dir = Path("data/news_sentiment") / date_key
+    result_dir = Path("results/news_analysis") / date_key
+
     cache_dir.mkdir(parents=True, exist_ok=True)
     result_dir.mkdir(parents=True, exist_ok=True)
     price_end = end_date + timedelta(days=31)

@@ -89,6 +89,9 @@ class PeerDataFetcher:
         except Exception as e:
             logger.exception("Error fetching peers: %s", e)
 
+        if self.ticker not in peers:
+            peers.insert(0, self.ticker)
+
         price_data: Dict[str, pd.DataFrame] = {}
         news: Dict[str, Any] = {}
         for peer in peers:

@@ -112,3 +112,28 @@ Output example:
     }
 }
 ```
+
+## Cached backtesting
+
+The script `cached_backtest_runner.py` runs the full pipeline over a date range
+while caching all Alpha Vantage news responses and the resulting sentiment
+analysis. Cached files are stored under `data/news_sentiment/<DATE_RANGE>` and
+`results/news_analysis/<DATE_RANGE>`, where `DATE_RANGE` is the start and end
+date formatted as `YYYYMMDD_YYYYMMDD`.
+
+To backtest a ticker and reuse the cached sentiment for its peers, run:
+
+```bash
+python cached_backtest_runner.py AAPL --start 2024-05-01 --end 2024-05-31
+```
+
+After the first run completes you can run the same command for one of the peer
+tickers. Use the same start and end dates so the cached values are reused:
+
+```bash
+python cached_backtest_runner.py DELL --start 2024-05-01 --end 2024-05-31
+```
+
+Backtest results are written to `results/<TICKER>_<DATE_RANGE>/`. Caches are
+shared across tickers, so once the data for a given day is fetched it can be
+reused without further API calls.
