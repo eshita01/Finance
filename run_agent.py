@@ -14,6 +14,7 @@ from data_sources.peer_data_fetcher import PeerDataFetcher
 from data_sources.sec_fetcher import SECFetcher
 from analysis.technical_analysis import compute_indicators, analyze
 from analysis.sentiment_analysis import analyze as analyze_sentiment
+from analysis.cached_sentiment import analyze_with_cache
 from analysis.insider_analysis import analyze as analyze_insider
 from analysis.peer_analysis import analyze as analyze_peers
 from analysis.sec_risk_analysis import SECRiskAnalyzer
@@ -40,7 +41,9 @@ def build_graph(
     ticker: str, gemini_key: str, alpha_key: str, finnhub_key: str, base_date: datetime
 ):
     fetcher = StockDataFetcher([ticker], end_date=base_date)
-    news_fetcher = NewsSentimentFetcher([ticker], alpha_key, base_date=base_date)
+    news_fetcher = NewsSentimentFetcher(
+        [ticker], alpha_key, base_date=base_date, cache_dir="data/news_sentiment"
+    )
     insider_fetcher = InsiderDataFetcher(ticker, finnhub_key, base_date=base_date)
     peer_fetcher = PeerDataFetcher(ticker, finnhub_key, alpha_key, base_date=base_date)
     sec_fetcher = SECFetcher(ticker)
@@ -64,7 +67,7 @@ def build_graph(
     def analysis_node(state: AgentState) -> AgentState:
         df = compute_indicators(state["data"])
         signals = analyze(df)
-        sentiment = analyze_sentiment(state["news"])
+        sentiment = analyze_with_cache(ticker, state["news"], base_date)
         insider_insights = analyze_insider(state["insider"])
 
         print("\n=== Analysis Node ===")

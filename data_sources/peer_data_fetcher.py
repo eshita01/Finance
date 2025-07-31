@@ -1,6 +1,8 @@
+import json
 import logging
 from datetime import datetime, timedelta, timezone
 
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -22,12 +24,16 @@ class PeerDataFetcher:
         alpha_key: str,
         base_date: Optional[datetime] = None,
         limit: int = 3,
+        news_cache_dir: Optional[str] = None,
     ):
         self.ticker = ticker
 
         self.finnhub_key = finnhub_key
         self.alpha_key = alpha_key
         self.base_date = base_date or datetime.now(timezone.utc)
+
+        self.news_cache_dir = Path(news_cache_dir or "data/news_sentiment")
+        self.news_cache_dir.mkdir(parents=True, exist_ok=True)
 
 
         self.limit = limit
@@ -36,6 +42,13 @@ class PeerDataFetcher:
     def _fetch_news_score(self, ticker: str) -> Dict[str, Any]:
         """Fetch news sentiment score for a single ticker using Alpha Vantage."""
         try:
+            date_str = self.base_date.strftime("%Y%m%d")
+            cache_file = self.news_cache_dir / f"{ticker}_{date_str}_score.json"
+
+            if cache_file.exists():
+                logger.info("Using cached news score for %s", ticker)
+                return json.loads(cache_file.read_text())
+
             time_from = (self.base_date - timedelta(days=1)).strftime("%Y%m%dT%H%M")
             params = {
                 "function": "NEWS_SENTIMENT",
@@ -58,7 +71,12 @@ class PeerDataFetcher:
                         except (TypeError, ValueError):
                             continue
             avg_score = sum(scores) / len(scores) if scores else 0.0
-            return {"companyNewsScore": avg_score}
+            result = {"companyNewsScore": avg_score}
+            try:
+                cache_file.write_text(json.dumps(result))
+            except Exception:
+                logger.exception("Failed writing news score cache %s", cache_file)
+            return result
         except Exception as e:
             logger.exception("Error fetching news sentiment for %s: %s", ticker, e)
             return {}
@@ -70,6 +88,9 @@ class PeerDataFetcher:
             peers = self.client.company_peers(self.ticker)[: self.limit]
         except Exception as e:
             logger.exception("Error fetching peers: %s", e)
+
+        if self.ticker not in peers:
+            peers.insert(0, self.ticker)
 
         price_data: Dict[str, pd.DataFrame] = {}
         news: Dict[str, Any] = {}
