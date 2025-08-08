@@ -45,3 +45,16 @@ def get_finnhub_key(env_path: Optional[str] = None) -> str:
     if not key:
         raise ValueError('FINNHUB_API_KEY not found in environment')
     return key
+
+
+@lru_cache()
+def get_huggingface_key(env_path: Optional[str] = None) -> str:
+    """Load Hugging Face API key from .env file."""
+    env_file = env_path or Path(__file__).resolve().parent / '.env'
+    if Path(env_file).exists():
+        load_dotenv(env_file)
+    from os import getenv
+    key = getenv('HUGGINGFACE_API_KEY')
+    if not key:
+        raise ValueError('HUGGINGFACE_API_KEY not found in environment')
+    return key
