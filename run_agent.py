@@ -19,7 +19,12 @@ from analysis.insider_analysis import analyze as analyze_insider
 from analysis.peer_analysis import analyze as analyze_peers
 from analysis.sec_risk_analysis import SECRiskAnalyzer
 from decision.decision_maker import DecisionMaker
-from config import get_api_key, get_alpha_vantage_key, get_finnhub_key
+from config import (
+    get_api_key,
+    get_alpha_vantage_key,
+    get_finnhub_key,
+    get_huggingface_key,
+)
 
 
 class AgentState(TypedDict, total=False):
@@ -38,11 +43,16 @@ class AgentState(TypedDict, total=False):
 
 
 def build_graph(
-    ticker: str, gemini_key: str, alpha_key: str, finnhub_key: str, base_date: datetime
+    ticker: str,
+    gemini_key: str,
+    alpha_key: str,
+    finnhub_key: str,
+    hf_key: str,
+    base_date: datetime,
 ):
     fetcher = StockDataFetcher([ticker], end_date=base_date)
     news_fetcher = NewsSentimentFetcher(
-        [ticker], alpha_key, base_date=base_date, cache_dir="data/news_sentiment"
+        [ticker], alpha_key, finnhub_key, hf_key, base_date=base_date, cache_dir="data/news_sentiment"
     )
     insider_fetcher = InsiderDataFetcher(ticker, finnhub_key, base_date=base_date)
     peer_fetcher = PeerDataFetcher(ticker, finnhub_key, alpha_key, base_date=base_date)
@@ -176,12 +186,13 @@ def main():
     gemini_key = get_api_key()
     alpha_key = get_alpha_vantage_key()
     finnhub_key = get_finnhub_key()
+    hf_key = get_huggingface_key()
     base_date = (
         datetime.strptime(args.date, "%Y-%m-%d")
         if args.date
         else datetime.now(timezone.utc)
     )
-    graph = build_graph(args.ticker, gemini_key, alpha_key, finnhub_key, base_date)
+    graph = build_graph(args.ticker, gemini_key, alpha_key, finnhub_key, hf_key, base_date)
     result = graph.invoke({})
     print("\nFinal decision:", result["decision"])
 
