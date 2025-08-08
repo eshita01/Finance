@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -52,7 +53,9 @@ class NewsSentimentFetcher:
         )
         try:
             resp = self._gemini.generate_content(prompt)
-            data = json.loads(resp.text)
+            logger.debug("Gemini raw response: %s", getattr(resp, "text", resp))
+            data = self._parse_gemini_json(resp.text)
+
             label = str(data.get("label", "neutral")).lower()
             score = float(data.get("score", 0.0))
             return {
@@ -63,6 +66,23 @@ class NewsSentimentFetcher:
         except Exception as exc:
             logger.exception("Gemini sentiment analysis failed: %s", exc)
             raise
+
+    @staticmethod
+    def _parse_gemini_json(text: str) -> Dict[str, Any]:
+        """Extract and parse a JSON object from Gemini response text."""
+        if not text:
+            raise ValueError("Empty Gemini response")
+        # Strip Markdown code fences like ```json ... ```
+        cleaned = text.strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.strip("`")
+            # remove optional language hint e.g. json
+            cleaned = cleaned.split(None, 1)[-1] if " " in cleaned else cleaned
+        # Find first JSON object in text
+        match = re.search(r"\{.*\}", cleaned, re.S)
+        if not match:
+            raise ValueError("No JSON object found in Gemini response")
+        return json.loads(match.group())
 
     def _fetch_alpha(self, ticker_str: str) -> List[Dict[str, Any]]:
         time_from = (self.base_date - timedelta(days=1)).strftime("%Y%m%dT%H%M")
