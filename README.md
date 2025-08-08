@@ -7,7 +7,7 @@ This project implements a simple trading agent using [LangGraph](https://github.
 - `data_sources/` – data fetching nodes
   - `stock_data_fetcher.py` – fetch OHLCV data with yfinance
   - `news_sentiment_fetcher.py` – fetch recent news and sentiment from Alpha Vantage
-    with Finnhub/HuggingFace fallback
+    with Finnhub + Gemini fallback
   - `insider_data_fetcher.py` – fetch insider transactions and sentiment using the `finnhub-python` client
   - `peer_data_fetcher.py` – retrieve peer tickers, price data, and news sentiment via Alpha Vantage
 - `analysis/` – analysis nodes
@@ -31,7 +31,6 @@ This project implements a simple trading agent using [LangGraph](https://github.
    GEMINI_API_KEY=your-key
    ALPHAVANTAGE_API_KEY=your-alpha-key
    FINNHUB_API_KEY=your-finnhub-key
-   HUGGINGFACE_API_KEY=your-huggingface-key
    ```
 
 ## Usage
