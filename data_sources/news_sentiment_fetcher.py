@@ -55,6 +55,7 @@ class NewsSentimentFetcher:
             resp = self._gemini.generate_content(prompt)
             logger.debug("Gemini raw response: %s", getattr(resp, "text", resp))
             data = self._parse_gemini_json(resp.text)
+
             label = str(data.get("label", "neutral")).lower()
             score = float(data.get("score", 0.0))
             return {
