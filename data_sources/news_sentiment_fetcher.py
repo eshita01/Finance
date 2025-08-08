@@ -41,6 +41,7 @@ class NewsSentimentFetcher:
             headers = {"Authorization": f"Bearer {self.hf_key}"}
             resp = requests.post(
                 "https://router.huggingface.co/hf-inference/models/ProsusAI/finbert",
+
                 headers=headers,
                 json={"inputs": text},
                 timeout=10,
