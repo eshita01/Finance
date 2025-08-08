@@ -26,6 +26,7 @@ from config import (
     get_api_key,
     get_alpha_vantage_key,
     get_finnhub_key,
+    get_huggingface_key,
 )
 
 
@@ -117,10 +118,11 @@ def build_graph(
     gemini_key: str,
     alpha_key: str,
     finnhub_key: str,
+    hf_key: str,
     base_date: datetime,
 ):
     fetcher = StockDataFetcher([ticker], end_date=base_date)
-    news_fetcher = NewsSentimentFetcher([ticker], alpha_key, base_date=base_date)
+    news_fetcher = NewsSentimentFetcher([ticker], alpha_key, finnhub_key, hf_key, base_date=base_date)
     insider_fetcher = InsiderDataFetcher(ticker, finnhub_key, base_date=base_date)
     peer_fetcher = PeerDataFetcher(ticker, finnhub_key, alpha_key, base_date=base_date)
     sec_fetcher = SECFetcher(ticker)
@@ -220,6 +222,7 @@ def run_for_date(ticker: str, day: datetime, keys: Dict[str, str]) -> str:
         keys["gemini"],
         keys["alpha"],
         keys["finnhub"],
+        keys["hf"],
         day,
     )
     result = graph.invoke({})
@@ -243,6 +246,7 @@ def main() -> None:
         "gemini": get_api_key(),
         "alpha": get_alpha_vantage_key(),
         "finnhub": get_finnhub_key(),
+        "hf": get_huggingface_key(),
     }
 
     trading_days = get_trading_days(args.ticker, start_date, end_date)
