@@ -25,6 +25,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+
 # ---------------------------------------------------------------------------
 # Configuration
 
@@ -33,6 +34,7 @@ CSV_FILE = os.path.join("results", "ablation_predictions.csv")
 LOG_OUTPUT = os.path.join("results", "chatgpt_ablation.log")
 MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 
 
 # Lines associated with news data that should be removed when performing
@@ -104,6 +106,7 @@ def ablate_lines(lines: Iterable[str], *, remove_news: bool, remove_peer: bool) 
 
 def call_model(prompt: str) -> str:
     """Send ``prompt`` to the ChatGPT model and return the response."""
+
     response = client.chat.completions.create(
         model=MODEL,
         messages=[{"role": "user", "content": prompt}],
