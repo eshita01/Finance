@@ -7,8 +7,8 @@ the model's prediction. Results and logs are written incrementally so
 that partial progress is visible if execution stops.
 
 The OpenAI API key should be supplied via the ``OPENAI_API_KEY``
-environment variable. The model can be overridden with
-``OPENAI_MODEL``.
+environment variable. If a ``.env`` file is present, it will be loaded
+automatically. The model can be overridden with ``OPENAI_MODEL``.
 """
 
 from __future__ import annotations
@@ -20,6 +20,10 @@ from dataclasses import dataclass
 from typing import Iterable, List, Tuple
 
 from openai import OpenAI
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 
 # ---------------------------------------------------------------------------
@@ -29,6 +33,8 @@ LOG_FILE = os.path.join("results", "gemini_prompts.log")
 CSV_FILE = os.path.join("results", "ablation_predictions.csv")
 LOG_OUTPUT = os.path.join("results", "chatgpt_ablation.log")
 MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 
 
 # Lines associated with news data that should be removed when performing
@@ -100,7 +106,7 @@ def ablate_lines(lines: Iterable[str], *, remove_news: bool, remove_peer: bool) 
 
 def call_model(prompt: str) -> str:
     """Send ``prompt`` to the ChatGPT model and return the response."""
-    client = OpenAI()
+
     response = client.chat.completions.create(
         model=MODEL,
         messages=[{"role": "user", "content": prompt}],
